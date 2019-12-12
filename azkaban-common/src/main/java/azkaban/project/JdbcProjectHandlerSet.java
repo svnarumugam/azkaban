@@ -37,7 +37,7 @@ import org.apache.commons.dbutils.ResultSetHandler;
 /**
  * This is a JDBC Handler collection place for all project handler classes.
  */
-class JdbcProjectHandlerSet {
+public class JdbcProjectHandlerSet {
 
   public static class ProjectResultHandler implements ResultSetHandler<List<Project>> {
 
