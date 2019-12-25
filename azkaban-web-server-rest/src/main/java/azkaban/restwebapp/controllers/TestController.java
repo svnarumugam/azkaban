@@ -1,14 +1,11 @@
 package azkaban.restwebapp.controllers;
 
-import azkaban.project.Project;
-import azkaban.project.ProjectLoader;
-import azkaban.project.ProjectManager;
-import azkaban.spi.Storage;
-import azkaban.webapp.StatusService;
+import azkaban.restwebapp.daos.SpaceSuperUserDao;
+import java.util.Collections;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -16,25 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
   @Autowired
-  StatusService statusService;
+  SpaceSuperUserDao spaceSuperUserDao;
 
-  @Autowired
-  ProjectManager projectManager;
-
-  @Autowired
-  Storage storage;
-
-  @Autowired
-  ProjectLoader projectLoader;
-
-  @RequestMapping("/storage")
-  public Boolean greeting(@RequestParam(value="name", defaultValue="World") String name) {
-    return storage != null;
-    //return projectManager.getProjects();
+  @RequestMapping("/admin/{user}")
+  public List<String> admin(@PathVariable("user") String userId) {
+     spaceSuperUserDao.addAdmins(1, Collections.singletonList(userId));
+     return spaceSuperUserDao.findAdminsBySpaceId(1);
   }
 
-  @RequestMapping("/projects/{projectId}")
-  public Project jdbcObjectAccess(@PathVariable("projectId") Integer projectId) {
-    return projectLoader.fetchProjectById(projectId);
+  @RequestMapping("/watcher/{user}")
+  public List<String> watcher(@PathVariable("user") String userId) {
+    spaceSuperUserDao.addWatchers(1, Collections.singletonList(userId));
+    return spaceSuperUserDao.findWatchersBySpaceId(1);
   }
 }
