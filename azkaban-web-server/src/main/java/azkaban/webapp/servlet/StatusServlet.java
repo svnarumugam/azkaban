@@ -20,8 +20,12 @@ package azkaban.webapp.servlet;
 import static azkaban.webapp.servlet.AbstractAzkabanServlet.JSON_MIME_TYPE;
 
 import azkaban.webapp.StatusService;
+import cloudflow.SampleService;
 import com.google.gson.GsonBuilder;
+import com.linkedin.jersey.api.uri.UriTemplate;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +46,17 @@ public class StatusServlet extends HttpServlet {
   @Override
   protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
       throws ServletException, IOException {
+
+    // project /
+    // api/v1/project/1
+    // response = projectService.actualMethod()
+    // json = toJson(response)
+    // resp.println(
+    //
+    UriTemplate t = new UriTemplate("/status/{statusid}");
+    Map<String, String> map = new HashMap<>();
+    t.match(req.getRequestURI(), map);
+    log.info("Request URI:" + req.getRequestURI());
     try {
       resp.setContentType(JSON_MIME_TYPE);
       resp.getOutputStream()
