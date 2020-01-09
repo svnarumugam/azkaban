@@ -98,7 +98,7 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
   protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
       throws ServletException, IOException {
 
-    this.webMetrics.markWebGetCall();
+    /* this.webMetrics.markWebGetCall();
     // Set session id
     final Session session = getSessionFromRequest(req);
     logRequest(req, session);
@@ -128,7 +128,9 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
       } else {
         handleLogin(req, resp);
       }
-    }
+    } */
+
+    handleGet(req, resp, null);
   }
 
   /**
@@ -264,6 +266,7 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
   @Override
   protected void doPost(final HttpServletRequest req, final HttpServletResponse resp)
       throws ServletException, IOException {
+    /*
     Session session = getSessionFromRequest(req);
     this.webMetrics.markWebPostCall();
     logRequest(req, session);
@@ -337,6 +340,10 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
     } else {
       handlePost(req, resp, session);
     }
+
+     */
+
+    handlePost(req, resp, null);
   }
 
   /**

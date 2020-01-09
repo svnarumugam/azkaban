@@ -72,6 +72,7 @@ import azkaban.webapp.servlet.StatsServlet;
 import azkaban.webapp.servlet.StatusServlet;
 import azkaban.webapp.servlet.TriggerManagerServlet;
 import cloudflow.SampleService;
+import cloudflow.services.SpaceService;
 import cloudflow.servlets.SpaceServlet;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -137,6 +138,7 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
   private final VelocityEngine velocityEngine;
   private final StatusService statusService;
   private final SampleService sample;
+  private final SpaceService spaceService;
   private final Server server;
   private final UserManager userManager;
   private final ProjectManager projectManager;
@@ -164,7 +166,8 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
       final FlowTriggerScheduler scheduler,
       final FlowTriggerService flowTriggerService,
       final StatusService statusService,
-      final SampleService sample) {
+      final SampleService sample,
+      final SpaceService spaceService) {
     this.props = requireNonNull(props, "props is null.");
     this.server = requireNonNull(server, "server is null.");
     this.executorManagerAdapter = requireNonNull(executorManagerAdapter,
@@ -180,6 +183,7 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
     this.scheduler = requireNonNull(scheduler, "scheduler is null.");
     this.flowTriggerService = requireNonNull(flowTriggerService, "flow trigger service is null");
     this.sample = requireNonNull(sample, "sample shouldn't be null");
+    this.spaceService = requireNonNull(spaceService, "space service can't be null");
     loadBuiltinCheckersAndActions();
 
     // load all trigger agents here
@@ -438,7 +442,7 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
 
     /* cloudflow api paths */
 
-    root.addServlet(new ServletHolder(new SpaceServlet()), "/api/v1/spaces");
+    root.addServlet(new ServletHolder(new SpaceServlet()), "/api/v1/spaces/*");
 
     final ServletHolder restliHolder = new ServletHolder(new RestliServlet());
     restliHolder.setInitParameter("resourcePackages", "azkaban.restli");
@@ -570,6 +574,10 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
 
   public SampleService sampleService() {
     return this.sample;
+  }
+
+  public SpaceService spaceService() {
+    return this.spaceService;
   }
 
   public ProjectManager getProjectManager() {

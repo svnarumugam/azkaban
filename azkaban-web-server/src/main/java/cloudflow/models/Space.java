@@ -82,5 +82,16 @@ public class Space {
   public int hashCode() {
     return Objects.hash(id, name, description, admins, watchers);
   }
+
+  @Override
+  public String toString() {
+    return "Space{" +
+        "id=" + id +
+        ", name='" + name + '\'' +
+        ", description='" + description + '\'' +
+        ", admins=" + admins +
+        ", watchers=" + watchers +
+        '}';
+  }
 }
 
