@@ -22,9 +22,9 @@ public class SpaceServiceImpl implements SpaceService {
     this.spaceDao = spaceDao;
   }
 
-  public Space create(Space space, User user) {
+  public int createSpace(Space space, User user) {
     int spaceId = spaceDao.create(space, user);
-    return getSpace(spaceId);
+    return spaceId;
   }
 
   public Space getSpace(int spaceId) {
