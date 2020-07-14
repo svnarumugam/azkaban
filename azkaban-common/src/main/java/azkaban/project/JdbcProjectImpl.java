@@ -318,7 +318,14 @@ public class JdbcProjectImpl implements ProjectLoader {
        * As we don't know the num_chunks before uploading the file, we initialize it to 0,
        * and will update it after uploading completes.
        */
-      String lowercaseFileExtension = FilenameUtils.getExtension(localFile.getName()).toLowerCase();
+      String lowercaseFileExtension = null;
+      String fileName = null;
+      /* It's possible to have localFile as null when we try to just add metadata related to the
+      project zip upload */
+      if (localFile != null) {
+        lowercaseFileExtension = FilenameUtils.getExtension(localFile.getName()).toLowerCase();
+        fileName = localFile.getName();
+      }
 
       // Get the startup dependencies input stream (or null if the file does not exist - indicating this is
       // a fat archive).
@@ -326,7 +333,7 @@ public class JdbcProjectImpl implements ProjectLoader {
 
       // Perform the DB update
       transOperator.update(INSERT_PROJECT_VERSION, projectId, version, updateTime, uploader,
-          lowercaseFileExtension, localFile.getName(), md5, 0, resourceId, startupDependenciesStream);
+          lowercaseFileExtension, fileName, md5, 0, resourceId, startupDependenciesStream);
     } catch (final SQLException e) {
       final String msg = String
           .format("Error initializing project id: %d version: %d ", projectId, version);
@@ -699,13 +706,33 @@ public class JdbcProjectImpl implements ProjectLoader {
 
   @Override
   public int getLatestProjectVersion(final Project project) throws ProjectManagerException {
+    return getLatestProjectVersion(project.getId());
+  }
+
+  @Override
+  public int getLatestProjectVersion(int projectId) {
     final IntHandler handler = new IntHandler();
     try {
-      return this.dbOperator.query(IntHandler.SELECT_LATEST_VERSION, handler, project.getId());
+      return this.dbOperator.query(IntHandler.SELECT_LATEST_VERSION, handler, projectId);
     } catch (final SQLException e) {
       logger.error(e);
       throw new ProjectManagerException(
-          "Error marking project " + project.getName() + " as inactive", e);
+          "Error marking project " + projectId + " as inactive", e);
+    }
+  }
+
+  @Override
+  public void uploadFlowsV2(final Project project, final int version, final Collection<Flow> flows)
+      throws ProjectManagerException {
+    // We do one at a time instead of batch... because well, the batch could be
+    // large.
+    logger.info("Uploading flows");
+    try {
+      for (final Flow flow : flows) {
+        uploadFlowV2(project, version, flow, this.defaultEncodingType);
+      }
+    } catch (final IOException e) {
+      throw new ProjectManagerException("Flow Upload failed.", e);
     }
   }
 
@@ -721,6 +748,27 @@ public class JdbcProjectImpl implements ProjectLoader {
       }
     } catch (final IOException e) {
       throw new ProjectManagerException("Flow Upload failed.", e);
+    }
+  }
+
+  @Override
+  public int getLatestGlobalFlowId() throws SQLException {
+    final IntHandler handler = new IntHandler();
+    try {
+      return this.dbOperator.query(IntHandler.SELECT_LATEST_FLOW_ID, handler);
+    } catch (final SQLException e) {
+      logger.error(e);
+      throw new SQLException("Unable to get the latest flow Id");
+    }
+  }
+
+  public int getFlowIdByFlowName(String flowName) throws SQLException {
+    final IntHandler handler = new IntHandler();
+    try {
+      return this.dbOperator.query(IntHandler.SELECT_FLOW_ID_BY_FLOW_NAME, handler, flowName);
+    } catch (final SQLException e) {
+      logger.error(e);
+      throw new SQLException("Unable to get the latest flow Id");
     }
   }
 
@@ -771,6 +819,31 @@ public class JdbcProjectImpl implements ProjectLoader {
       this.dbOperator
           .update(INSERT_FLOW, project.getId(), version, flow.getId(), System.currentTimeMillis(),
               encType.getNumVal(), data);
+    } catch (final SQLException e) {
+      logger.error("Error inserting flow", e);
+      throw new ProjectManagerException("Error inserting flow " + flow.getId(), e);
+    }
+  }
+
+  private void uploadFlowV2(final Project project, final int version, final Flow flow,
+      final EncodingType encType)
+      throws ProjectManagerException, IOException {
+    final String json = JSONUtils.toJSON(flow.toObject());
+    final byte[] data = convertJsonToBytes(encType, json);
+
+
+    logger.info("Flow upload " + flow.getId() + " is byte size " + data.length);
+    /* This will always result in insert because we add new entries
+       when we upload flows, no updates drama
+     */
+    final String INSERT_FLOW =
+        "INSERT INTO project_flows (project_id, version, flow_id, modified_time, encoding_type, "
+            + "json, flow_name, latest_flow_version) values (?,?,?,?,?,?,?,?)";
+    try {
+
+      this.dbOperator
+          .update(INSERT_FLOW, project.getId(), version, flow.getId(), System.currentTimeMillis(),
+              encType.getNumVal(), data, flow.getId(), flow.getFlowVersion());
     } catch (final SQLException e) {
       logger.error("Error inserting flow", e);
       throw new ProjectManagerException("Error inserting flow " + flow.getId(), e);
@@ -972,6 +1045,7 @@ public class JdbcProjectImpl implements ProjectLoader {
   }
 
   @Override
+  @SuppressWarnings("Duplicates")
   public void uploadFlowFile(final int projectId, final int projectVersion, final File flowFile,
       final int flowVersion) throws ProjectManagerException {
     logger.info(String
@@ -998,6 +1072,54 @@ public class JdbcProjectImpl implements ProjectLoader {
         this.dbOperator
             .update(INSERT_FLOW_FILES, projectId, projectVersion, flowFile.getName(), flowVersion,
                 System.currentTimeMillis(), buf);
+      } catch (final SQLException e) {
+        throw new ProjectManagerException(
+            "Error uploading flow file " + flowFile.getName() + ", version " + flowVersion + ".",
+            e);
+      }
+    } catch (final IOException e) {
+      throw new ProjectManagerException(
+          String.format(
+              "Error reading flow file %s, version: %d, length: [%d bytes].",
+              flowFile.getName(), flowVersion, flowFile.length()));
+    }
+  }
+
+  @Override
+  @SuppressWarnings("Duplicates")
+  public void uploadFlowFileV2(final int projectId, final int projectVersion, final File flowFile,
+      final int flowVersion) throws ProjectManagerException {
+    logger.info(String
+        .format(
+            "Uploading flow file %s, version %d for project %d, version %d, file length is [%d bytes]",
+            flowFile.getName(), flowVersion, projectId, projectVersion, flowFile.length()));
+
+    if (flowFile.length() > MAX_FLOW_FILE_SIZE_IN_BYTES) {
+      throw new ProjectManagerException("Flow file length exceeds 10 MB limit.");
+    }
+
+    final byte[] buffer = new byte[MAX_FLOW_FILE_SIZE_IN_BYTES];
+
+    final String INSERT_FLOW_FILES =
+        "INSERT INTO project_flow_files (project_id, project_version, flow_name, flow_version, "
+            + "modified_time, "
+            + "flow_file, flow_id, experimental, dsl_version, created_by, locked, encoding_type, "
+            + "flow_model_blob"
+            + ") values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+
+    try (final FileInputStream input = new FileInputStream(flowFile);
+        final BufferedInputStream bufferedStream = new BufferedInputStream(input)) {
+      final int size = bufferedStream.read(buffer);
+      logger.info("Read bytes for " + flowFile.getName() + ", size:" + size);
+      final byte[] buf = Arrays.copyOfRange(buffer, 0, size);
+      try {
+        int flowIdToInsert = flowVersion == 1 ? getLatestGlobalFlowId() + 1 :
+            getFlowIdByFlowName(flowFile.getName());
+
+        this.dbOperator
+            .update(INSERT_FLOW_FILES, projectId, projectVersion, flowFile.getName(), flowVersion,
+                System.currentTimeMillis(), buf, flowIdToInsert, 1, 1, "sarumuga", 0, 2, null);
       } catch (final SQLException e) {
         throw new ProjectManagerException(
             "Error uploading flow file " + flowFile.getName() + ", version " + flowVersion + ".",

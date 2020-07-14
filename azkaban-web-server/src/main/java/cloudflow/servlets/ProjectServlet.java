@@ -7,7 +7,9 @@ import azkaban.webapp.AzkabanWebServer;
 import azkaban.webapp.servlet.LoginAbstractAzkabanServlet;
 import cloudflow.services.ProjectService;
 import cloudflow.models.Project;
+import cloudflow.services.UploadService;
 import com.linkedin.jersey.api.uri.UriTemplate;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +31,9 @@ public class ProjectServlet extends LoginAbstractAzkabanServlet {
       String.format("/projects/{%s}", PROJECT_ID_KEY));
 
   private ProjectService projectService;
+  private UploadService uploadService;
   private ObjectMapper objectMapper;
+
 
   private static final Logger log = LoggerFactory.getLogger(ProjectServlet.class);
 
@@ -38,6 +42,7 @@ public class ProjectServlet extends LoginAbstractAzkabanServlet {
     super.init(config);
     final AzkabanWebServer server = (AzkabanWebServer) getApplication();
     this.projectService = server.projectService();
+    this.uploadService = server.uploadService();
     this.objectMapper = server.objectMapper();
   }
 
@@ -96,6 +101,7 @@ public class ProjectServlet extends LoginAbstractAzkabanServlet {
         return;
       }
     } else {
+      /* the upload use case can go here */
       /* Unsupported route, return an error */
       log.error("Invalid route for projects endpoint: " + req.getRequestURI());
       sendErrorResponse(resp, HttpServletResponse.SC_NOT_FOUND, "Unsupported projects API "
@@ -104,4 +110,16 @@ public class ProjectServlet extends LoginAbstractAzkabanServlet {
     }
   }
 
+  @Override
+  protected void handleMultiformPost(final HttpServletRequest req,
+      final HttpServletResponse resp, final Map<String, Object> params, final Session session)
+      throws ServletException, IOException {
+    // get the parameters
+    int projectId = 19;
+    int version = 3;
+    File file = new File("/Users/sarumuga/workspace/test-files/test-flow-from-yeni.zip");
+    //int output = uploadService.addProjectMetadata(projectId, session.getUser());
+    uploadService.uploadProject(projectId, version, file, session.getUser());
+    sendResponse(resp, 200, "test-upload");
+  }
 }

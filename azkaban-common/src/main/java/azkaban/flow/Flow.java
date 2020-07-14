@@ -29,6 +29,7 @@ import java.util.Set;
 public class Flow {
 
   private final String id;
+
   private final HashMap<String, Node> nodes = new HashMap<>();
   private final HashMap<String, Edge> edges = new HashMap<>();
   private final HashMap<String, Set<Edge>> outEdges =
@@ -44,7 +45,9 @@ public class Flow {
   private List<String> successEmail = new ArrayList<>();
   private String mailCreator = DefaultMailCreator.DEFAULT_MAIL_CREATOR;
   private ArrayList<String> errors;
+  /* This is a project version */
   private int version = -1;
+  private int flowVersion;
   private Map<String, Object> metadata = new HashMap<>();
 
   private boolean isLayedOut = false;
@@ -68,11 +71,14 @@ public class Flow {
     final String condition = (String) flowObject.get("condition");
     final Boolean isLocked = (Boolean) flowObject.get("isLocked");
     final String flowLockErrorMessage = (String) flowObject.get("flowLockErrorMessage");
+    final Integer flowVersion = (Integer) flowObject.getOrDefault("flowVersion", 0);
 
     final Flow flow = new Flow(id);
     if (layedout != null) {
       flow.setLayedOut(layedout);
     }
+
+    flow.setFlowVersion(flowVersion);
 
     if (isEmbeddedFlow != null) {
       flow.setEmbeddedFlow(isEmbeddedFlow);
@@ -172,6 +178,14 @@ public class Flow {
 
   public void setVersion(final int version) {
     this.version = version;
+  }
+
+  public int getFlowVersion() {
+    return this.flowVersion;
+  }
+
+  public void setFlowVersion(final int flowVersion) {
+    this.flowVersion = flowVersion;
   }
 
   public void initialize() {
@@ -348,7 +362,9 @@ public class Flow {
     flowObj.put("type", "flow");
     flowObj.put("id", getId());
     flowObj.put("project.id", this.projectId);
+    /* This version is a project version */
     flowObj.put("version", this.version);
+    flowObj.put("flowVersion", this.flowVersion);
     flowObj.put("props", objectizeProperties());
     flowObj.put("nodes", objectizeNodes());
     flowObj.put("edges", objectizeEdges());

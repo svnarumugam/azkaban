@@ -119,7 +119,7 @@ public class AzkabanProjectLoaderTest {
 
     this.project.setVersion(this.VERSION);
     checkValidationReport(this.azkabanProjectLoader
-        .uploadProject(this.project, projectZipFile, "zip", uploader, null));
+        .uploadProjectV2(this.project, projectZipFile, "zip", uploader, null));
 
     // startupDependencies should be null - because it does not exist!
     verify(this.projectStorageManager)
@@ -154,7 +154,7 @@ public class AzkabanProjectLoaderTest {
       return resultingReports;
     }).when(this.archiveUnthinner).validateThinProject(any(), any(), any(), any());
 
-    // When uploadProject is called, make sure it has the correctly modified zip being passed in and that
+    // When uploadProjectV2 is called, make sure it has the correctly modified zip being passed in and that
     // the startup-dependencies.json file being passed still exists (it wasn't cleaned up too early).
     doAnswer(invocation -> {
       File zipFileBeingUploaded = (File) invocation.getArguments()[2];
@@ -163,7 +163,7 @@ public class AzkabanProjectLoaderTest {
 
       File libFolder = new File(unzippedFinalProjFolder, "lib");
       // Let's check to make sure that file we removed is not included in the final zip
-      // the uploadProject method should have noticed that the report mentioned a file was removed
+      // the uploadProjectV2 method should have noticed that the report mentioned a file was removed
       // and re-zipped the folder. It's also possible that the zipping process removed the empty
       // lib folder, so as long as it does not exist OR is empty we'll pass this test.
       assertTrue(!libFolder.exists()
@@ -177,7 +177,7 @@ public class AzkabanProjectLoaderTest {
 
     this.project.setVersion(this.VERSION);
     this.azkabanProjectLoader
-        .uploadProject(this.project, projectZipFile, "zip", uploader, null);
+        .uploadProjectV2(this.project, projectZipFile, "zip", uploader, null);
 
     // Verify that the archiveUnthinner was called
     verify(this.archiveUnthinner).validateThinProject(any(), any(), any(), any());
@@ -208,7 +208,7 @@ public class AzkabanProjectLoaderTest {
       return resultingReports;
     }).when(this.archiveUnthinner).validateThinProject(any(), any(), any(), any());
 
-    // When uploadProject is called, make sure it has the correctly modified zip being passed in and that
+    // When uploadProjectV2 is called, make sure it has the correctly modified zip being passed in and that
     // the startup-dependencies.json file being passed still exists (it wasn't cleaned up too early).
     doAnswer(invocation -> {
       File zipFileBeingUploaded = (File) invocation.getArguments()[2];
@@ -228,7 +228,7 @@ public class AzkabanProjectLoaderTest {
 
     this.project.setVersion(this.VERSION);
     this.azkabanProjectLoader
-        .uploadProject(this.project, projectZipFile, "zip", uploader, null);
+        .uploadProjectV2(this.project, projectZipFile, "zip", uploader, null);
 
     // Verify that the archiveUnthinner was called
     verify(this.archiveUnthinner).validateThinProject(any(), any(), any(), any());
@@ -249,7 +249,7 @@ public class AzkabanProjectLoaderTest {
 
     this.project.setVersion(this.VERSION);
     checkValidationReport(this.azkabanProjectLoader
-        .uploadProject(this.project, projectZipFile, "zip", uploader, null));
+        .uploadProjectV2(this.project, projectZipFile, "zip", uploader, null));
 
     verify(this.projectStorageManager)
         .uploadProject(eq(this.project), eq(this.VERSION + 1), eq(projectZipFile), any(File.class), eq(uploader));
@@ -282,7 +282,7 @@ public class AzkabanProjectLoaderTest {
         .thenReturn(flowVersion);
 
     checkValidationReport(this.azkabanProjectLoader
-        .uploadProject(this.project, projectZipFile, "zip", uploader, null));
+        .uploadProjectV2(this.project, projectZipFile, "zip", uploader, null));
 
     verify(this.projectStorageManager)
         .uploadProject(this.project, this.VERSION + 1, projectZipFile, null, uploader);

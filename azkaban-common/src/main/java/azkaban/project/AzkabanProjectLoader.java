@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles the downloading and uploading of projects.
  */
-class AzkabanProjectLoader {
+public class AzkabanProjectLoader {
 
   private static final Logger log = LoggerFactory.getLogger(AzkabanProjectLoader.class);
   private static final String DIRECTORY_FLOW_REPORT_KEY = "Directory Flow";
@@ -107,6 +107,67 @@ class AzkabanProjectLoader {
     log.info("Project version retention is set to " + this.projectVersionRetention);
   }
 
+  @SuppressWarnings("Duplicates")
+  public Map<String, ValidationReport> uploadProjectV2(final Project project, int version,
+      final File archive, final String fileType, final User uploader,
+      final Props additionalProps) {
+    log.info("Uploading files to " + project.getName());
+    final Map<String, ValidationReport> reports;
+
+    File folder = null;
+    final FlowLoader loader;
+
+    try {
+      folder = unzipProject(archive, fileType);
+
+      final File startupDependencies = getStartupDependenciesFile(folder);
+      final boolean isThinProject = startupDependencies.exists();
+
+      reports = isThinProject
+          ? this.archiveUnthinner.validateThinProject(project, folder,
+          startupDependencies, additionalProps)
+          : this.validatorUtils.validateProject(project, folder, additionalProps);
+
+      // If any files in the project folder have been modified or removed, update the project zip
+      if (reports.values().stream().anyMatch(r -> !r.getModifiedFiles().isEmpty() || !r.getRemovedFiles().isEmpty())) {
+        updateProjectZip(archive, folder);
+      }
+
+      loader = this.flowLoaderFactory.createFlowLoader(folder);
+      reports.put(DIRECTORY_FLOW_REPORT_KEY, loader.loadProjectFlow(project, folder));
+
+      // Check the validation report.
+      if (!isReportStatusValid(reports, project)) {
+        FlowLoaderUtils.cleanUpDir(folder);
+        return reports;
+      }
+
+      // Upload the project to DB and storage.
+      final File startupDependenciesOrNull = isThinProject ? startupDependencies : null;
+      /* DB storage happens here */
+      persistProjectCloudFlow(project, version, loader, archive, folder, startupDependenciesOrNull,
+          uploader);
+
+      if (isThinProject) {
+        // Mark that we uploaded a thin zip in the metrics.
+        commonMetrics.markUploadThinProject();
+      } else {
+        commonMetrics.markUploadFatProject();
+      }
+
+    } finally {
+      FlowLoaderUtils.cleanUpDir(folder);
+    }
+
+    // Clean up project old installations after new project is uploaded successfully.
+    // see if this setting has to be changed to something else as this may clean the versions
+    // we are interested in storing forever
+//    cleanUpProjectOldInstallations(project);
+
+    return reports;
+  }
+
+  @SuppressWarnings("Duplicates")
   public Map<String, ValidationReport> uploadProject(final Project project,
       final File archive, final String fileType, final User uploader, final Props additionalProps)
       throws ProjectManagerException, ExecutorManagerException {
@@ -143,6 +204,7 @@ class AzkabanProjectLoader {
 
       // Upload the project to DB and storage.
       final File startupDependenciesOrNull = isThinProject ? startupDependencies : null;
+      /* DB storage happens here */
       persistProject(project, loader, archive, folder, startupDependenciesOrNull, uploader);
 
       if (isThinProject) {
@@ -157,6 +219,8 @@ class AzkabanProjectLoader {
     }
 
     // Clean up project old installations after new project is uploaded successfully.
+    // see if this setting has to be changed to something else as this may clean the versions
+    // we are interested in storing forever
     cleanUpProjectOldInstallations(project);
 
     return reports;
@@ -208,9 +272,73 @@ class AzkabanProjectLoader {
     return true;
   }
 
+  @SuppressWarnings("Duplicates")
+  private void persistProjectCloudFlow(final Project project, int projectVersion,
+      final FlowLoader loader,
+      final File archive,
+      final File projectDir, final File startupDependencies, final User uploader) throws ProjectManagerException {
+    /* This synch block doesn't make much sense unless we work on the same object across requests */
+    synchronized (project) {
+      // take the version from project
+      final int newProjectVersion = projectVersion;
+      final Map<String, Flow> currentFlows = loader.getFlowMap();
+      List<Flow> flowsPersisted = projectLoader.fetchAllProjectFlows(project);
+      Map<String, Flow> existingFlows = flowsPersisted.stream()
+          .collect(Collectors.toMap(x -> x.getId(), v -> v));
+      /* The logic to assign the project version goes here */
+      for (final Entry<String, Flow> currentFlowEntry : currentFlows.entrySet()) {
+        Flow currentFlow = currentFlowEntry.getValue();
+
+        if (existingFlows.containsKey(currentFlow.getId())) {
+          currentFlow.setFlowVersion(existingFlows.get(currentFlow.getId()).getFlowVersion() + 1);
+
+        }else {
+          currentFlow.setFlowVersion(1);
+        }
+        // get the flow version and increment it by 1
+        // set the next version by iterating the flow list
+        currentFlow.setProjectId(project.getId());
+        // this is a project version
+        currentFlow.setVersion(newProjectVersion);
+      }
+
+      this.projectStorageManager.uploadProject(project, newProjectVersion, archive, startupDependencies, uploader);
+
+      log.info("Uploading flow to db for project " + archive.getName());
+      this.projectLoader.uploadFlowsV2(project, newProjectVersion, currentFlows.values());
+      log.info("Changing project versions for project " + archive.getName());
+      // change flow version in the same way
+      // can this have implication on the project execution too?
+      this.projectLoader.changeProjectVersion(project, newProjectVersion,
+          uploader.getUserId());
+      // change the latest flow versions in the respective table
+      //
+      project.setFlows(currentFlows);
+
+      if (loader instanceof DirectoryFlowLoader) {
+        final DirectoryFlowLoader directoryFlowLoader = (DirectoryFlowLoader) loader;
+        log.info("Uploading Job properties");
+        this.projectLoader.uploadProjectProperties(project, new ArrayList<>(
+            directoryFlowLoader.getJobPropsMap().values()));
+        log.info("Uploading Props properties");
+        this.projectLoader.uploadProjectProperties(project, directoryFlowLoader.getPropsList());
+
+      } else if (loader instanceof DirectoryYamlFlowLoader) {
+        uploadFlowFilesRecursivelyV2(projectDir, project, newProjectVersion);
+      } else {
+        throw new ProjectManagerException("Invalid type of flow loader.");
+      }
+
+      this.projectLoader.postEvent(project, EventType.UPLOADED, uploader.getUserId(),
+          "Uploaded project files zip " + archive.getName());
+    }
+  }
+
+  @SuppressWarnings("Duplicates")
   private void persistProject(final Project project, final FlowLoader loader, final File archive,
       final File projectDir, final File startupDependencies, final User uploader) throws ProjectManagerException {
     synchronized (project) {
+      // take the version from project
       final int newProjectVersion = this.projectLoader.getLatestProjectVersion(project) + 1;
       final Map<String, Flow> flows = loader.getFlowMap();
       for (final Flow flow : flows.values()) {
@@ -225,6 +353,8 @@ class AzkabanProjectLoader {
       log.info("Changing project versions for project " + archive.getName());
       this.projectLoader.changeProjectVersion(project, newProjectVersion,
           uploader.getUserId());
+      // change the latest flow versions in the respective table
+      //
       project.setFlows(flows);
 
       if (loader instanceof DirectoryFlowLoader) {
@@ -249,13 +379,30 @@ class AzkabanProjectLoader {
   private void uploadFlowFilesRecursively(final File projectDir, final Project project, final int
       newProjectVersion) {
     for (final File file : projectDir.listFiles(new SuffixFilter(Constants.FLOW_FILE_SUFFIX))) {
+      /* not efficient to write this way */
       final int newFlowVersion = this.projectLoader
           .getLatestFlowVersion(project.getId(), newProjectVersion, file.getName()) + 1;
+
       this.projectLoader
           .uploadFlowFile(project.getId(), newProjectVersion, file, newFlowVersion);
     }
     for (final File file : projectDir.listFiles(new DirFilter())) {
       uploadFlowFilesRecursively(file, project, newProjectVersion);
+    }
+  }
+
+  private void uploadFlowFilesRecursivelyV2(final File projectDir, final Project project, final int
+      newProjectVersion) {
+    for (final File file : projectDir.listFiles(new SuffixFilter(Constants.FLOW_FILE_SUFFIX))) {
+      /* not efficient to write this way */
+      final int newFlowVersion = this.projectLoader
+          .getLatestFlowVersion(project.getId(), newProjectVersion, file.getName()) + 1;
+
+      this.projectLoader
+          .uploadFlowFileV2(project.getId(), newProjectVersion, file, newFlowVersion);
+    }
+    for (final File file : projectDir.listFiles(new DirFilter())) {
+      uploadFlowFilesRecursivelyV2(file, project, newProjectVersion);
     }
   }
 

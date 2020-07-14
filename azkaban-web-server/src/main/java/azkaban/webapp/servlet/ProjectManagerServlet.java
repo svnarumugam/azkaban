@@ -1817,7 +1817,7 @@ public class ProjectManagerServlet extends LoginAbstractAzkabanServlet {
 
       if (this.enableQuartz) {
         //todo chengren311: should maintain atomicity,
-        // e.g, if uploadProject fails, associated schedule shouldn't be added.
+        // e.g, if uploadProjectV2 fails, associated schedule shouldn't be added.
         this.scheduler.unschedule(project);
       }
 

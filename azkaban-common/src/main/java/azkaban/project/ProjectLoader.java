@@ -24,6 +24,7 @@ import azkaban.utils.Props;
 import azkaban.utils.Triple;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -132,11 +133,17 @@ public interface ProjectLoader {
       throws ProjectManagerException;
 
   /**
+   * Uploads all computed flows for cloudflow use case
+   */
+  void uploadFlowsV2(Project project, int version, Collection<Flow> flows);
+
+  /**
    * Uploads all computed flows
    */
   void uploadFlows(Project project, int version, Collection<Flow> flows)
       throws ProjectManagerException;
 
+  int getLatestGlobalFlowId() throws SQLException;
   /**
    * Upload just one flow.
    */
@@ -166,6 +173,8 @@ public interface ProjectLoader {
    */
   int getLatestProjectVersion(Project project)
       throws ProjectManagerException;
+
+  int getLatestProjectVersion(int projectId) throws ProjectManagerException;
 
   /**
    * Upload Project properties
@@ -212,6 +221,11 @@ public interface ProjectLoader {
   void uploadFlowFile(int projectId, int projectVersion, File flowFile, int flowVersion)
       throws ProjectManagerException;
 
+  /**
+   * Uploads flow file.
+   */
+  void uploadFlowFileV2(int projectId, int projectVersion, File flowFile, int flowVersion)
+      throws ProjectManagerException;
   /**
    * Gets flow file that's uploaded.
    */

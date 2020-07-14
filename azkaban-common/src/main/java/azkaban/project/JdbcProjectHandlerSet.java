@@ -298,6 +298,10 @@ class JdbcProjectHandlerSet {
         "SELECT project_id, version, upload_time, uploader, file_type, file_name, md5, num_chunks, resource_id, startup_dependencies "
             + "FROM project_versions WHERE project_id=? AND version=?";
 
+    public static String SELECT_LATEST_PROJECT_VERSION =
+        "SELECT project_id, version, upload_time, uploader, file_type, file_name, md5, num_chunks, resource_id, startup_dependencies "
+            + "FROM project_versions WHERE project_id=? ORDER BY version DESC LIMIT 1";
+
     @Override
     public List<ProjectFileHandler> handle(final ResultSet rs) throws SQLException {
       if (!rs.next()) {
@@ -345,6 +349,9 @@ class JdbcProjectHandlerSet {
     public static String SELECT_LATEST_VERSION = "SELECT MAX(version) FROM project_versions WHERE project_id=?";
     public static String SELECT_LATEST_FLOW_VERSION = "SELECT MAX(flow_version) FROM "
         + "project_flow_files WHERE project_id=? AND project_version=? AND flow_name=?";
+    public static String SELECT_LATEST_FLOW_ID = "SELECT MAX(flow_id) FROM project_flow_files";
+    public static String SELECT_FLOW_ID_BY_FLOW_NAME = "SELECT flow_id FROM "
+        + "project_flow_files WHERE flow_name = ? LIMIT 1";
 
     @Override
     public Integer handle(final ResultSet rs) throws SQLException {

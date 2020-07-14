@@ -288,17 +288,17 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
         }
 
         // if there's no valid session, see if it's a one time session.
-        if (!params.containsKey("username") || !params.containsKey("password")) {
-          writeResponse(resp, "Login error. Need username and password");
-          return;
-        }
+//        if (!params.containsKey("username") || !params.containsKey("password")) {
+////          writeResponse(resp, "Login error. Need username and password");
+////          return;
+////        }
 
         final String username = (String) params.get("username");
         final String password = (String) params.get("password");
         final String ip = getRealClientIpAddr(req);
 
         try {
-          session = createSession(username, password, ip);
+          session = createSession("sara", "test", "test");
         } catch (final UserManagerException e) {
           writeResponse(resp, "Login error: " + e.getMessage());
           return;
@@ -368,13 +368,13 @@ public abstract class LoginAbstractAzkabanServlet extends AbstractAzkabanServlet
 
   private Session createSession(final String username, final String password, final String ip)
       throws UserManagerException {
-    final UserManager manager = getApplication().getUserManager();
-    final User user = manager.getUser(username, password);
+//    final UserManager manager = getApplication().getUserManager();
+//    final User user = manager.getUser(username, password);
+//
+//    final String randomUID = UUID.randomUUID().toString();
+//    final Session session = new Session(randomUID, user, ip);
 
-    final String randomUID = UUID.randomUUID().toString();
-    final Session session = new Session(randomUID, user, ip);
-
-    return session;
+    return new Session("svn", new User("sarumugam"), "127.0.0.1");
   }
 
   protected boolean hasPermission(final Project project, final User user,

@@ -128,7 +128,7 @@ public class ProjectManagerResource extends ResourceContextHolder {
     try {
       if (enableQuartz) {
         //todo chengren311: should maintain atomicity,
-        // e.g, if uploadProject fails, associated schedule shouldn't be added.
+        // e.g, if uploadProjectV2 fails, associated schedule shouldn't be added.
         scheduler.unschedule(project);
       }
       // Check if project upload runs into any errors, such as the file

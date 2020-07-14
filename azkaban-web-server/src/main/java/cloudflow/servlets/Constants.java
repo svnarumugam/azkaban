@@ -8,6 +8,7 @@ public class Constants {
   public static final String STATUS_KEY = "status";
   public static final String ATTEMPTS_KEY = "attempts";
   public static final String ID_KEY = "id";
+  public static final String UNKNOWN = null;
 
   public static final String FLOW_ID_KEY = "flowId";
   public static final String FLOW_VERSION_KEY = "flowVersion";

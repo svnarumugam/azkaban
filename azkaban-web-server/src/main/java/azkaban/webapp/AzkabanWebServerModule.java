@@ -44,6 +44,8 @@ import cloudflow.services.ProjectService;
 import cloudflow.services.ProjectServiceImpl;
 import cloudflow.services.SpaceService;
 import cloudflow.services.SpaceServiceImpl;
+import cloudflow.services.UploadService;
+import cloudflow.services.UploadServiceImpl;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import java.lang.reflect.Constructor;
@@ -106,6 +108,7 @@ public class AzkabanWebServerModule extends AbstractModule {
     bind(ProjectAdminDao.class).to(ProjectAdminDaoImpl.class);
     bind(SpaceSuperUserDao.class).to(SpaceSuperUserDaoImpl.class);
     bind(ExecutionService.class).to(ExecutionServiceImpl.class);
+    bind(UploadService.class).to(UploadServiceImpl.class);
   }
 
   private Class<? extends ExecutorManagerAdapter> resolveExecutorManagerAdaptorClassType() {

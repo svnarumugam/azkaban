@@ -74,6 +74,7 @@ import azkaban.webapp.servlet.TriggerManagerServlet;
 import cloudflow.services.ExecutionService;
 import cloudflow.services.ProjectService;
 import cloudflow.services.SpaceService;
+import cloudflow.services.UploadService;
 import cloudflow.servlets.ExecutionServlet;
 import cloudflow.servlets.SpaceServlet;
 import com.google.inject.Guice;
@@ -158,6 +159,7 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
   private final StatusService statusService;
   private final ExecutionService executionService;
   private final ProjectService projectService;
+  private final UploadService uploadService;
 
   @Inject
   public AzkabanWebServer(final Props props,
@@ -176,7 +178,8 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
       final StatusService statusService,
       final SpaceService spaceService,
       final ExecutionService executionService,
-      final ProjectService projectService) {
+      final ProjectService projectService,
+      final UploadService uploadService) {
     this.props = requireNonNull(props, "props is null.");
     this.server = requireNonNull(server, "server is null.");
     this.executorManagerAdapter = requireNonNull(executorManagerAdapter,
@@ -197,7 +200,7 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
     this.spaceService = requireNonNull(spaceService, "space service can't be null");
     this.executionService = requireNonNull(executionService,"execution service can't be null");
     this.projectService = requireNonNull(projectService, "project service can't be null");
-
+    this.uploadService = requireNonNull(uploadService, "upload service can't be null");
     loadBuiltinCheckersAndActions();
 
     // load all trigger agents here
@@ -606,6 +609,10 @@ public class AzkabanWebServer extends AzkabanServer implements IMBeanRegistrable
 
   public ProjectService projectService() {
     return this.projectService;
+  }
+
+  public UploadService uploadService() {
+    return this.uploadService;
   }
 
   public ProjectManager getProjectManager() {
