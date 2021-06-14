@@ -16,6 +16,7 @@
 package azkaban.executor;
 
 import azkaban.DispatchMethod;
+import azkaban.executor.ExecutionOptions.FailureAction;
 import azkaban.flow.Flow;
 import azkaban.imagemgmt.version.VersionSet;
 import azkaban.project.Project;
@@ -150,7 +151,9 @@ public class ExecutableFlow extends ExecutableFlowBase {
     super.setFlow(project, flow);
     this.executionOptions = new ExecutionOptions();
     this.executionOptions.setMailCreator(flow.getMailCreator());
-
+    if (flow.getFailureOption() != null) {
+      executionOptions.setFailureAction(executionOptions.mapToFailureAction(flow.getFailureOption()));
+    }
     if (flow.getSuccessEmails() != null) {
       this.executionOptions.setSuccessEmails(flow.getSuccessEmails());
     }

@@ -16,6 +16,8 @@
 
 package azkaban.flow;
 
+import static azkaban.flow.CommonJobProperties.FAILURE_OPTION_PROPERTY;
+
 import azkaban.Constants;
 import azkaban.executor.mail.DefaultMailCreator;
 import java.util.ArrayList;
@@ -60,6 +62,16 @@ public class Flow {
   private int numLevels = -1;
   private final List<String> failureEmail = new ArrayList<>();
   private final List<String> successEmail = new ArrayList<>();
+
+  public String getFailureOption() {
+    return failureOption;
+  }
+
+  public void setFailureOption(final String failureOption) {
+    this.failureOption = failureOption;
+  }
+
+  private String failureOption;
   private String mailCreator = DefaultMailCreator.DEFAULT_MAIL_CREATOR;
   private ArrayList<String> errors;
   private Map<String, Object> metadata = new HashMap<>();
@@ -110,7 +122,9 @@ public class Flow {
         .getOrDefault(SUCCESS_EMAIL_PROPERTY, flow.getSuccessEmails());
     final String mailCreator = (String) flowObject
         .getOrDefault(MAIL_CREATOR_PROPERTY, flow.getMailCreator());
-
+    final String failureOption = (String) flowObject.getOrDefault(
+        FAILURE_OPTION_PROPERTY, flow.getFailureOption()
+    );
     flow.setLayedOut(layedout);
     flow.setEmbeddedFlow(isEmbeddedFlow);
     flow.setAzkabanFlowVersion(azkabanFlowVersion);
@@ -123,7 +137,7 @@ public class Flow {
     flow.addFailureEmails(failureEmails);
     flow.addSuccessEmails(successEmails);
     flow.setMailCreator(mailCreator);
-
+    flow.setFailureOption(failureOption);
     // Loading projects
     final Map<String, FlowProps> properties = loadPropertiesFromObject(propertiesList);
     flow.addAllFlowProperties(properties.values());
@@ -369,6 +383,9 @@ public class Flow {
     flowObj.put(IS_LOCKED_PROPERTY, this.isLocked);
     flowObj.put(FLOW_LOCK_ERROR_MESSAGE_PROPERTY, this.flowLockErrorMessage);
 
+    if (this.failureOption != null) {
+      flowObj.put(FAILURE_OPTION_PROPERTY, this.failureOption);
+    }
     if (this.errors != null) {
       flowObj.put(ERRORS_PROPERTY, this.errors);
     }

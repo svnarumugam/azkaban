@@ -286,7 +286,24 @@ public class ExecutionOptions {
     return new GsonBuilder().setPrettyPrinting().create().toJson(toObject());
   }
 
+  /**
+   * Read the failure option value and return the corresponding
+   * Enum object.
+   * @param failureOption this value is passed from the DSL/Yaml file
+   * @return Azkaban understood FailureAction object
+   */
+  public FailureAction mapToFailureAction(final String failureOption) {
+    if (failureOption.equals("finish_currently_running")) {
+      return FailureAction.FINISH_CURRENTLY_RUNNING;
+    } else if (failureOption.equals("cancel_all")) {
+      return FailureAction.CANCEL_ALL;
+    } else if (failureOption.equals("finish_all_possible")) {
+      return FailureAction.FINISH_ALL_POSSIBLE;
+    }
+    return FailureAction.FINISH_CURRENTLY_RUNNING;
+  }
+
   public enum FailureAction {
-    FINISH_CURRENTLY_RUNNING, CANCEL_ALL, FINISH_ALL_POSSIBLE
+    FINISH_CURRENTLY_RUNNING, CANCEL_ALL, FINISH_ALL_POSSIBLE;
   }
 }

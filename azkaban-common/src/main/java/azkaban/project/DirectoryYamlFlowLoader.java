@@ -16,6 +16,8 @@
 
 package azkaban.project;
 
+import static azkaban.flow.CommonJobProperties.FAILURE_OPTION_PROPERTY;
+
 import azkaban.Constants;
 import azkaban.flow.ConditionOnJobStatus;
 import azkaban.flow.Edge;
@@ -150,6 +152,10 @@ public class DirectoryYamlFlowLoader implements FlowLoader {
     flow.setAzkabanFlowVersion(Constants.AZKABAN_FLOW_VERSION_2_0);
     final Props props = azkabanFlow.getProps();
     FlowLoaderUtils.addEmailPropsToFlow(flow, props);
+    String failureOptionConfig = props.getString(FAILURE_OPTION_PROPERTY, null);
+    if (failureOptionConfig != null) {
+      flow.setFailureOption(failureOptionConfig);
+    }
     props.setSource(flowFile.getName());
 
     flow.addAllFlowProperties(ImmutableList.of(new FlowProps(props)));

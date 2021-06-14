@@ -11,11 +11,11 @@ CREATE TABLE IF NOT EXISTS image_types (
   modified_by      VARCHAR(64)     NOT NULL
 );
 
-CREATE INDEX image_types_name
-  ON image_types (name);
-
-CREATE INDEX image_types_active
-  ON image_types (active);
+# CREATE INDEX image_types_name
+#   ON image_types (name);
+#
+# CREATE INDEX image_types_active
+#   ON image_types (active);
 
 -- Definition for image_versions table. This table is used for storing versions of an image type
 CREATE TABLE IF NOT EXISTS image_versions (
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS image_versions (
   UNIQUE (type_id, version)
 );
 
-CREATE INDEX image_versions_type_id
-  ON image_versions (type_id);
+# CREATE INDEX image_versions_type_id
+#   ON image_versions (type_id);
 
 -- Definition for image_ownerships table. This table is used for storing ownership information for
 -- an image type
@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS image_ownerships (
   modified_on      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   modified_by      VARCHAR(64)     NOT NULL
 );
-
-CREATE INDEX image_ownerships_type_id
-  ON image_ownerships (type_id);
+#
+# CREATE INDEX image_ownerships_type_id
+#   ON image_ownerships (type_id);
 
 
 -- Definition for image_rampup_plan table. This table is used for creating rampup plan for an
@@ -72,11 +72,11 @@ CREATE TABLE IF NOT EXISTS image_rampup_plan (
 --  One option is to move each table create scripts to separate file. But all the  containerization
 --  tables are placed in this file so that it easier to manage.
 
-CREATE INDEX image_rampup_plan_type_id
-  ON image_rampup_plan (type_id);
-
-CREATE INDEX image_rampup_plan_active
-  ON image_rampup_plan (active);
+# CREATE INDEX image_rampup_plan_type_id
+#   ON image_rampup_plan (type_id);
+#
+# CREATE INDEX image_rampup_plan_active
+#   ON image_rampup_plan (active);
 
 -- Definition for image_rampup table. This table contains information of the image versions being
 -- ramped up for an image type
@@ -92,11 +92,11 @@ CREATE TABLE IF NOT EXISTS image_rampup (
   modified_by       VARCHAR(64)    NOT NULL
 );
 
-CREATE INDEX image_rampup_plan_id
-  ON image_rampup (plan_id);
-
-CREATE INDEX image_rampup_version_id
-  ON image_rampup (version_id);
+# CREATE INDEX image_rampup_plan_id
+#   ON image_rampup (plan_id);
+#
+# CREATE INDEX image_rampup_version_id
+#   ON image_rampup (version_id);
 
 -- Definition for version_set table. Version set contains set of image versions and will be
 -- used during flow container launch
@@ -108,8 +108,8 @@ CREATE TABLE IF NOT EXISTS version_set (
      PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX version_set_md5
- ON version_set (md5);
+# CREATE UNIQUE INDEX version_set_md5
+#  ON version_set (md5);
 
 -- TODO: Add the alter table script in the specific release
 -- Adding version_set_id column in execution_flows
